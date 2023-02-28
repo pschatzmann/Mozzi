@@ -104,12 +104,20 @@ compile time.
 Defining this option as true in mozzi_config.h allows to completely customize the audio output, e.g. for connecting to external DACs.
 For more detail, @see AudioOuput .
 */
-#define EXTERNAL_AUDIO_OUTPUT false
-//#define EXTERNAL_AUDIO_OUTPUT true
+//#define EXTERNAL_AUDIO_OUTPUT false
+#define EXTERNAL_AUDIO_OUTPUT true
 
 /** @ingroup core
 Only used when EXTERNAL_AUDIO_OUTPUT is set to true: The resolution to use for audio samples, internally. You will usually set this to match the
 output resolution of your DAC. 16 is the default value, here. Note that 16 bits is also the maximum currently supported on AVR. */
 //#define EXTERNAL_AUDIO_BITS 16
+
+/** @ingroup core
+Defining this option as true in mozzi_config.h allows to completely customize the audio input, e.g. for connecting from an external DACs.
+For more detail, @see AudioInput .
+*/
+//#define EXTERNAL_AUDIO_INPUT false
+#define EXTERNAL_AUDIO_INPUT true
+
 
 #endif        //  #ifndef MOZZI_CONFIG_H
