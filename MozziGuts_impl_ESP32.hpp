@@ -9,11 +9,10 @@
  * Attribution-NonCommercial-ShareAlike 4.0 International License.
  *
  */
-#pragma once
 #if !(IS_ESP32())
 #  error "Wrong implementation included for this platform"
 #endif
-#include "AudioConfigESP.h"
+#include "AudioConfigESP32.h"
 #include <driver/i2s.h>
 #include <soc/adc_channel.h>
 
@@ -23,17 +22,17 @@ static const char module[]="Mozzi-ESP32";
 /// Make sure that we provide a supported port
 int getReadPort(){
   switch (ESP32_AUDIO_OUT_MODE){
-    case INTERNAL_DAC: // output using internal DAC via I2S, output on pin 26
+    case INTERNAL_DAC: 
       return -1;
-    case PDM_VIA_I2S:  // output PDM coded sample on the I2S data pin (pin 33, by default, configurable, below)
+    case PDM_VIA_I2S:  
       return -1;
-    case I2S_DAC:     // output using an external DAC via I2S
+    case I2S_DAC:     
      return -1;
-    case I2S_DAC_AND_INTERNAL_ADC:  // output using an external DAC via I2S and input via internal ADC
+    case I2S_DAC_AND_INTERNAL_ADC:  
       return 0;
-    case I2S_DAC_AND_I2S_ADC:  // output using an external DAC , input with exteran ADC - both via I2S
+    case I2S_DAC_AND_I2S_ADC: 
       return i2s_num;
-    case INTERNAL_DAC_AND_I2S_ADC: // output using internal DAC via I2S, output on pin 26, input via external ADC
+    case INTERNAL_DAC_AND_I2S_ADC: 
       return 1;
   }
   return -1;
@@ -42,17 +41,17 @@ int getReadPort(){
 /// Make sure that we provide a supported port
 int getWritePort(){
   switch (ESP32_AUDIO_OUT_MODE){
-    case INTERNAL_DAC: // output using internal DAC via I2S, output on pin 26
+    case INTERNAL_DAC: 
       return 0;
-    case PDM_VIA_I2S:  // output PDM coded sample on the I2S data pin (pin 33, by default, configurable, below)
+    case PDM_VIA_I2S:  
       return 0;
-    case I2S_DAC:     // output using an external DAC via I2S
+    case I2S_DAC:     
      return i2s_num;
-    case I2S_DAC_AND_INTERNAL_ADC:  // output using an external DAC via I2S and input via internal ADC
+    case I2S_DAC_AND_INTERNAL_ADC:  
       return 1;
-    case I2S_DAC_AND_I2S_ADC:  // output using an external DAC , input with exteran ADC - both via I2S
+    case I2S_DAC_AND_I2S_ADC:  
       return i2s_num;
-    case INTERNAL_DAC_AND_I2S_ADC: // output using internal DAC via I2S, output on pin 26, input via external ADC
+    case INTERNAL_DAC_AND_I2S_ADC: 
       return 0;
   }
   return -1;
@@ -61,17 +60,17 @@ int getWritePort(){
 /// Determine the I2S Output Mode (and input mode if on same port)
 int getI2SModeOut(){
   switch (ESP32_AUDIO_OUT_MODE){
-    case INTERNAL_DAC: // output using internal DAC via I2S, output on pin 26
+    case INTERNAL_DAC: 
       return I2S_MODE_MASTER | I2S_MODE_TX | I2S_MODE_DAC_BUILT_IN;
-    case PDM_VIA_I2S:  // output PDM coded sample on the I2S data pin (pin 33, by default, configurable, below)
+    case PDM_VIA_I2S:  
       return I2S_MODE_MASTER | I2S_MODE_TX | I2S_MODE_PDM;
-    case I2S_DAC:     // output using an external DAC via I2S
+    case I2S_DAC:     
       return I2S_MODE_MASTER | I2S_MODE_TX;
-    case I2S_DAC_AND_INTERNAL_ADC:  // output using an external DAC via I2S and input via internal ADC
+    case I2S_DAC_AND_INTERNAL_ADC: 
       return I2S_MODE_MASTER | I2S_MODE_TX | I2S_MODE_RX;
-    case I2S_DAC_AND_I2S_ADC:  // output using an external DAC , input with exteran ADC - both via I2S
+    case I2S_DAC_AND_I2S_ADC:  
       return I2S_MODE_MASTER | I2S_MODE_TX | I2S_MODE_RX;
-    case INTERNAL_DAC_AND_I2S_ADC: // output using internal DAC via I2S, output on pin 26, input via external ADC
+    case INTERNAL_DAC_AND_I2S_ADC: 
       return I2S_MODE_MASTER | I2S_MODE_TX | I2S_MODE_DAC_BUILT_IN;
   }
   return -1;
@@ -80,17 +79,17 @@ int getI2SModeOut(){
 /// Determine the I2S Mode for the separate input port
 int getI2SModeIn(){
   switch (ESP32_AUDIO_OUT_MODE){
-    case INTERNAL_DAC: // output using internal DAC via I2S, output on pin 26
+    case INTERNAL_DAC: 
       return -1;
-    case PDM_VIA_I2S:  // output PDM coded sample on the I2S data pin (pin 33, by default, configurable, below)
+    case PDM_VIA_I2S:  
       return -1;
-    case I2S_DAC:     // output using an external DAC via I2S
+    case I2S_DAC:     
       return -1;
-    case I2S_DAC_AND_INTERNAL_ADC:  // output using an external DAC via I2S and input via internal ADC
+    case I2S_DAC_AND_INTERNAL_ADC:  
       return I2S_MODE_MASTER | I2S_MODE_RX | I2S_MODE_ADC_BUILT_IN;
-    case I2S_DAC_AND_I2S_ADC:  // output using an external DAC , input with exteran ADC - both via I2S
+    case I2S_DAC_AND_I2S_ADC:  
       return -1;
-    case INTERNAL_DAC_AND_I2S_ADC: // output using internal DAC via I2S, output on pin 26, input via external ADC
+    case INTERNAL_DAC_AND_I2S_ADC: 
       return I2S_MODE_MASTER | I2S_MODE_RX;
   }
   return -1;
@@ -140,7 +139,6 @@ void setupMozziADC(int8_t speed) {
 #include <driver/timer.h> // for EXTERNAL_AUDIO_OUTPUT
 
 #if (EXTERNAL_AUDIO_OUTPUT != true)
-#  include "AudioConfigESP32.h"
 // On ESP32 we cannot test wether the DMA buffer has room. Instead, we have to use a one-sample mini buffer. In each iteration we
 // _try_ to write that sample to the DMA buffer, and if successful, we can buffer the next sample. Somewhat cumbersome, but works.
 // TODO: Should ESP32 gain an implemenation of i2s_available(), we should switch to using that, instead.
