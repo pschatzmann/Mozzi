@@ -119,16 +119,16 @@ uint8_t adcPinToChannelNum(uint8_t pin) {
   return pin;
 }
 void adcStartConversion(uint8_t channel) {
-    //ESP_LOGI(module, "%s", __func__);
+    ESP_LOGD(module, "%s", __func__);
 }
 void startSecondADCReadOnCurrentChannel() {
-    ESP_LOGI(module, "%s", __func__);
+    ESP_LOGD(module, "%s", __func__);
 }
 void setupFastAnalogRead(int8_t speed) {
-    ESP_LOGI(module, "%s", __func__);
+    ESP_LOGD(module, "%s", __func__);
 }
 void setupMozziADC(int8_t speed) {
-    ESP_LOGI(module, "%s: %d", __func__, speed);
+    ESP_LOGD(module, "%s: %d", __func__, speed);
 }
 ////// END analog input code ////////
 
@@ -154,7 +154,9 @@ static uint32_t _esp32_prev_sample[PDM_RESOLUTION];
 inline bool esp32_tryWriteSample() {
   static i2s_port_t port = (i2s_port_t) getWritePort();
   size_t bytes_written;
-  i2s_write(port, &_esp32_prev_sample, sizeof(_esp32_prev_sample), &bytes_written, 0);
+  int write_len = sizeof(_esp32_prev_sample);
+  i2s_write(port, &_esp32_prev_sample, write_len, &bytes_written, 0);
+  //ESP_LOGD(module, "%s port:%d, len: %d, written: %d, value: %d", __func__, port, write_len, bytes_written, _esp32_prev_sample[0]);
   return (bytes_written != 0);
 }
 
@@ -209,7 +211,7 @@ static void startI2SAudio(i2s_port_t port, int mode){
   };
 
   if (i2s_driver_install(port, &i2s_config, 0, NULL)!=ESP_OK){
-    ESP_LOGE(module, "%s - %s", __func__, "i2s_driver_install");
+    ESP_LOGE(module, "%s - %s : %d", __func__, "i2s_driver_install", port);
   }
 
   if (mode & I2S_MODE_DAC_BUILT_IN){
@@ -268,7 +270,7 @@ static void startAudio() {
   // start output
   startI2SAudio((i2s_port_t)getWritePort(), getI2SModeOut());
   // start input on separate port
-  int i2s_mode_in = getI2SModeOut();
+  int i2s_mode_in = getI2SModeIn();
   if (i2s_mode_in!=-1){
     startI2SAudio((i2s_port_t)getReadPort(), getI2SModeIn());
   }
@@ -278,8 +280,7 @@ static void startAudio() {
 
 void stopMozzi() {
   i2s_driver_uninstall((i2s_port_t)getWritePort());
-  int i2s_mode_in = getI2SModeOut();
-  if (i2s_mode_in!=-1){
+gi  if (i2s_mode_in!=-1){
     i2s_driver_uninstall((i2s_port_t)getReadPort());
   }
 }
