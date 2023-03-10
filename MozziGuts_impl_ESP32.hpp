@@ -25,7 +25,7 @@ int getWritePort(){
       return 0;
     case PDM_VIA_I2S:  
       return 0;
-    case I2S_DAC:     
+    case PT8211_DAC:     
      return i2s_num;
     case I2S_DAC_AND_I2S_ADC:  
       return i2s_num;
@@ -42,7 +42,7 @@ int getI2SModeOut(){
       return I2S_MODE_MASTER | I2S_MODE_TX | I2S_MODE_DAC_BUILT_IN;
     case PDM_VIA_I2S:  
       return I2S_MODE_MASTER | I2S_MODE_TX | I2S_MODE_PDM;
-    case I2S_DAC:     
+    case PT8211_DAC:     
       return I2S_MODE_MASTER | I2S_MODE_TX;
     case I2S_DAC_AND_I2S_ADC:  
       return I2S_MODE_MASTER | I2S_MODE_TX | I2S_MODE_RX;
@@ -57,13 +57,12 @@ int getI2SModeOut(){
 
 /// @brief  Reads a sample from the I2S buffer. I2S is stereo, so we combine the result to one single sample
 int getAudioInput() {
-  static const int i2s_port = getReadPort();
+  static const int i2s_port = getWritePort();
   if (i2s_port==-1) return 0;
 
   int16_t tmp[2];
   size_t result;
-  i2s_port_t i2s_num = (i2s_port_t) getReadPort();
-  esp_err_t rc = i2s_read(i2s_num, tmp, sizeof(tmp), &result, portMAX_DELAY);
+  esp_err_t rc = i2s_read((i2s_port_t)i2s_port, tmp, sizeof(tmp), &result, portMAX_DELAY);
   return ADC_VALUE((tmp[0]+tmp[1]) / 2);
 }
 
@@ -181,21 +180,9 @@ static void startI2SAudio(i2s_port_t port, int mode){
     if (i2s_set_dac_mode(I2S_DAC_CHANNEL_BOTH_EN)!=ESP_OK) {
         ESP_LOGE(module, "%s - %s", __func__, "i2s_set_dac_mode");
     }
-  // Internal ADC
-  } else if (mode & I2S_MODE_ADC_BUILT_IN){
-      if (i2s_set_adc_mode(adc_unit, adc_channel)!=ESP_OK) {
-        ESP_LOGE(module, "%s - %s", __func__, "i2s_set_adc_mode");
-      }
-      // enable the ADC
-      if (i2s_adc_enable(port)!=ESP_OK) {
-        ESP_LOGE(module, "%s - %s: %d", __func__, "i2s_adc_enable", port);
-      }
   // Regular I2S
   } else {
     static const i2s_pin_config_t pin_config = {
-#if ESP_IDF_VERSION > ESP_IDF_VERSION_VAL(4, 4, 0)                 
-      .mck_io_num = ESP32_I2S_MCK_PIN,
-#endif
       .bck_io_num = ESP32_I2S_BCK_PIN,
       .ws_io_num = ESP32_I2S_WS_PIN,
       .data_out_num = ESP32_I2S_DATA_PIN,
