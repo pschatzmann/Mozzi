@@ -18,17 +18,17 @@
 #define PT8211_DAC 2   // OBSOLETE: use I2S_DAC instead
 #define PDM_VIA_I2S 3  // output PDM coded sample on the I2S data pin (pin 33, by default, configurable, below)
 #define I2S_DAC_AND_I2S_ADC 4  // output using an external DAC , input with exteran ADC - both via I2S
-#define I2S_DAC_AND_INTERNAL_ADC 5  // output using an external DAC via I2S and input via internal ADC
-#define INTERNAL_DAC_AND_I2S_ADC 6 // output using internal DAC via I2S, output on pin 26, input via external ADC
 
 // Set output & input mode
-#define ESP32_AUDIO_OUT_MODE INTERNAL_DAC
+#define ESP32_AUDIO_OUT_MODE I2S_DAC_AND_I2S_ADC
 
 // For external I2S output, only: I2S_PINS
 #define ESP32_I2S_BCK_PIN 26
 #define ESP32_I2S_WS_PIN 25
 #define ESP32_I2S_DATA_PIN 33
 #define ESP32_I2S_DATA_PIN_IN 32  // relevant with I2S_ADC
+#define ESP32_I2S_MCK_PIN 0 
+#define ESP32_FIXED_MCK 0
 
 // Preferred I2S port: note that this might be taken into consideration if there is a choice
 // The Internal ADC and DAC only work on port 0 and can not be used at the same time!
@@ -36,14 +36,14 @@ const i2s_port_t i2s_num = I2S_NUM_0;
 
 // Internal ADC
 const adc_unit_t adc_unit = ADC_UNIT_1;
-const adc1_channel_t adc_channel = ADC1_GPIO34_CHANNEL;
+const adc1_channel_t adc_channel = ADC1_CHANNEL_0; // GPIO36
 
 // Select the data range of the ADC
 //#define ADC_VALUE(in) (in) // no scaling
 #define ADC_VALUE(in) ((in + 32768)*0.015625) // scale to 0 to 1023
 
 // Optionally select a higher Sample Rate
-#define ESP32_AUDIO_RATE 32000
+#define ESP32_AUDIO_RATE 8000
 
 
 /// User config end. Do not modify below this line

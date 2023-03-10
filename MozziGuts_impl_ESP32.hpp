@@ -18,26 +18,6 @@
 
 static const char module[]="Mozzi-ESP32";
 
-
-/// Make sure that we provide a supported port
-int getReadPort(){
-  switch (ESP32_AUDIO_OUT_MODE){
-    case INTERNAL_DAC: 
-      return -1;
-    case PDM_VIA_I2S:  
-      return -1;
-    case I2S_DAC:     
-     return -1;
-    case I2S_DAC_AND_INTERNAL_ADC:  
-      return 0;
-    case I2S_DAC_AND_I2S_ADC: 
-      return i2s_num;
-    case INTERNAL_DAC_AND_I2S_ADC: 
-      return 1;
-  }
-  return -1;
-}
-
 /// Make sure that we provide a supported port
 int getWritePort(){
   switch (ESP32_AUDIO_OUT_MODE){
@@ -47,15 +27,13 @@ int getWritePort(){
       return 0;
     case I2S_DAC:     
      return i2s_num;
-    case I2S_DAC_AND_INTERNAL_ADC:  
-      return 1;
     case I2S_DAC_AND_I2S_ADC:  
       return i2s_num;
-    case INTERNAL_DAC_AND_I2S_ADC: 
-      return 0;
   }
+  ESP_LOGE(module, "%s - %s", __func__, "ESP32_AUDIO_OUT_MODE invalid");
   return -1;
 }
+
 
 /// Determine the I2S Output Mode (and input mode if on same port)
 int getI2SModeOut(){
@@ -66,34 +44,13 @@ int getI2SModeOut(){
       return I2S_MODE_MASTER | I2S_MODE_TX | I2S_MODE_PDM;
     case I2S_DAC:     
       return I2S_MODE_MASTER | I2S_MODE_TX;
-    case I2S_DAC_AND_INTERNAL_ADC: 
-      return I2S_MODE_MASTER | I2S_MODE_TX | I2S_MODE_RX;
     case I2S_DAC_AND_I2S_ADC:  
       return I2S_MODE_MASTER | I2S_MODE_TX | I2S_MODE_RX;
-    case INTERNAL_DAC_AND_I2S_ADC: 
-      return I2S_MODE_MASTER | I2S_MODE_TX | I2S_MODE_DAC_BUILT_IN;
   }
-  return -1;
+   ESP_LOGE(module, "%s - %s", __func__, "ESP32_AUDIO_OUT_MODE invalid");
+ return -1;
 }
 
-/// Determine the I2S Mode for the separate input port
-int getI2SModeIn(){
-  switch (ESP32_AUDIO_OUT_MODE){
-    case INTERNAL_DAC: 
-      return -1;
-    case PDM_VIA_I2S:  
-      return -1;
-    case I2S_DAC:     
-      return -1;
-    case I2S_DAC_AND_INTERNAL_ADC:  
-      return I2S_MODE_MASTER | I2S_MODE_RX | I2S_MODE_ADC_BUILT_IN;
-    case I2S_DAC_AND_I2S_ADC:  
-      return -1;
-    case INTERNAL_DAC_AND_I2S_ADC: 
-      return I2S_MODE_MASTER | I2S_MODE_RX;
-  }
-  return -1;
-}
 
 // We provide a custom implementation of getAudioInput() avoiding the complex standard handling
 #define USE_CUSTOM_AUDIO_INPUT
@@ -119,20 +76,18 @@ uint8_t adcPinToChannelNum(uint8_t pin) {
   return pin;
 }
 void adcStartConversion(uint8_t channel) {
-    ESP_LOGD(module, "%s", __func__);
+//    ESP_LOGD(module, "%s", __func__);
 }
 void startSecondADCReadOnCurrentChannel() {
-    ESP_LOGD(module, "%s", __func__);
+//    ESP_LOGD(module, "%s", __func__);
 }
 void setupFastAnalogRead(int8_t speed) {
-    ESP_LOGD(module, "%s", __func__);
+//    ESP_LOGD(module, "%s", __func__);
 }
 void setupMozziADC(int8_t speed) {
-    ESP_LOGD(module, "%s: %d", __func__, speed);
+//   ESP_LOGD(module, "%s: %d", __func__, speed);
 }
 ////// END analog input code ////////
-
-
 
 
 //// BEGIN AUDIO OUTPUT code ///////
@@ -199,7 +154,9 @@ void CACHED_FUNCTION_ATTR timer0_audio_output_isr(void *) {
 
 
 static void startI2SAudio(i2s_port_t port, int mode){
-  static const i2s_config_t i2s_config = {
+  ESP_LOGI(module, "%s: port=%d, mode=0x%x, rate=%d", __func__, port, mode, AUDIO_RATE * PDM_RESOLUTION);
+
+  static i2s_config_t i2s_config = {
     .mode = (i2s_mode_t)mode,
     .sample_rate = AUDIO_RATE * PDM_RESOLUTION,
     .bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT,  // only the top 8 bits will actually be used by the internal DAC, but using 8 bits straight away seems buggy
@@ -208,30 +165,37 @@ static void startI2SAudio(i2s_port_t port, int mode){
     .intr_alloc_flags = 0, // default interrupt priority
     .dma_buf_count = 8,    // 8*128 bytes of buffer corresponds to 256 samples (2 channels, see above, 2 bytes per sample per channel)
     .dma_buf_len = 128,
-    .use_apll = false
+    .use_apll = false,
   };
 
+  // install i2s driver
   if (i2s_driver_install(port, &i2s_config, 0, NULL)!=ESP_OK){
     ESP_LOGE(module, "%s - %s : %d", __func__, "i2s_driver_install", port);
   }
 
+  // Internal DAC
   if (mode & I2S_MODE_DAC_BUILT_IN){
-    if (i2s_set_pin((i2s_port_t)port, NULL)!=ESP_OK) {
+    if (i2s_set_pin(port, NULL)!=ESP_OK) {
         ESP_LOGE(module, "%s - %s", __func__, "i2s_set_pin");
     }
     if (i2s_set_dac_mode(I2S_DAC_CHANNEL_BOTH_EN)!=ESP_OK) {
         ESP_LOGE(module, "%s - %s", __func__, "i2s_set_dac_mode");
     }
-  } if (mode & I2S_MODE_ADC_BUILT_IN){
+  // Internal ADC
+  } else if (mode & I2S_MODE_ADC_BUILT_IN){
       if (i2s_set_adc_mode(adc_unit, adc_channel)!=ESP_OK) {
         ESP_LOGE(module, "%s - %s", __func__, "i2s_set_adc_mode");
       }
       // enable the ADC
       if (i2s_adc_enable(port)!=ESP_OK) {
-        ESP_LOGE(module, "%s - %s", __func__, "i2s_adc_enable");
+        ESP_LOGE(module, "%s - %s: %d", __func__, "i2s_adc_enable", port);
       }
+  // Regular I2S
   } else {
     static const i2s_pin_config_t pin_config = {
+#if ESP_IDF_VERSION > ESP_IDF_VERSION_VAL(4, 4, 0)                 
+      .mck_io_num = ESP32_I2S_MCK_PIN,
+#endif
       .bck_io_num = ESP32_I2S_BCK_PIN,
       .ws_io_num = ESP32_I2S_WS_PIN,
       .data_out_num = ESP32_I2S_DATA_PIN,
@@ -272,19 +236,11 @@ static void startAudio() {
 static void startAudio() {
   // start output
   startI2SAudio((i2s_port_t)getWritePort(), getI2SModeOut());
-  // start input on separate port
-  int i2s_mode_in = getI2SModeIn();
-  if (i2s_mode_in!=-1){
-    startI2SAudio((i2s_port_t)getReadPort(), getI2SModeIn());
-  }
 }
 
 #endif
 
 void stopMozzi() {
   i2s_driver_uninstall((i2s_port_t)getWritePort());
-gi  if (i2s_mode_in!=-1){
-    i2s_driver_uninstall((i2s_port_t)getReadPort());
-  }
 }
 //// END AUDIO OUTPUT code ///////
